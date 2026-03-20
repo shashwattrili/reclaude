@@ -21,6 +21,7 @@ struct ContentView: View {
         .task {
             await store.loadAll()
             store.startWatching()
+            await store.buildSearchIndex()
         }
     }
 }

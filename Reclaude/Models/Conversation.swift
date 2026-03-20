@@ -14,7 +14,11 @@ struct Conversation: Identifiable, Hashable {
     let firstUserMessage: String?  // preview text for sidebar
 
     var displayName: String {
-        slug ?? String(id.prefix(8))
+        if let msg = firstUserMessage, !msg.isEmpty {
+            let title = msg.prefix(60)
+            return title.count < msg.count ? "\(title)..." : String(title)
+        }
+        return slug ?? String(id.prefix(8))
     }
 
     var projectDisplayName: String {

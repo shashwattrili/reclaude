@@ -9,7 +9,7 @@ struct ConversationRowView: View {
             HStack {
                 Text(conversation.displayName)
                     .font(.system(.body, weight: .medium))
-                    .lineLimit(1)
+                    .lineLimit(2)
                 Spacer()
                 if let date = conversation.lastTimestamp {
                     Text(DateFormatting.relative(date))
@@ -18,14 +18,14 @@ struct ConversationRowView: View {
                 }
             }
 
-            if let preview = conversation.firstUserMessage {
-                Text(preview)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-            }
-
             HStack(spacing: 6) {
+                if let slug = conversation.slug {
+                    Text(slug)
+                        .font(.caption2)
+                        .foregroundStyle(ClaudeTheme.peach)
+                        .lineLimit(1)
+                }
+
                 if let branch = conversation.gitBranch, branch != "HEAD" {
                     Label(branch, systemImage: "arrow.triangle.branch")
                         .font(.caption2)

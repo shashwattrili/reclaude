@@ -1,6 +1,7 @@
 import SwiftUI
+import MarkdownUI
 
-/// Renders text with inline code blocks detected by triple-backtick fences.
+/// Renders text with styled code blocks and MarkdownUI for prose.
 struct CodeBlockView: View {
     let text: String
 
@@ -9,7 +10,7 @@ struct CodeBlockView: View {
             ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
                 switch segment {
                 case .text(let content):
-                    Text(content)
+                    Markdown(content)
                         .textSelection(.enabled)
                 case .code(let language, let content):
                     VStack(alignment: .leading, spacing: 0) {

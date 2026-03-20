@@ -1,4 +1,5 @@
 import SwiftUI
+import MarkdownUI
 
 struct MessageBubbleView: View {
     let message: ConversationMessage
@@ -15,7 +16,7 @@ struct MessageBubbleView: View {
         HStack {
             Spacer(minLength: 60)
             VStack(alignment: .trailing, spacing: 4) {
-                Text(message.displayText)
+                Markdown(message.displayText)
                     .textSelection(.enabled)
                     .padding(12)
                     .background(ClaudeTheme.userBubble.opacity(0.3))

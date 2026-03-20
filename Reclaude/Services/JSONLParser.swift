@@ -34,12 +34,12 @@ final class JSONLParser {
     }
 
     /// Parse only first N lines to extract metadata quickly.
-    func parseMetadata(at url: URL, maxLines: Int = 15) -> ConversationMetadata? {
+    func parseMetadata(at url: URL, maxLines: Int = 50) -> ConversationMetadata? {
         guard let fileHandle = FileHandle(forReadingAtPath: url.path) else { return nil }
         defer { fileHandle.closeFile() }
 
-        // Read first 8KB — enough for metadata from first few messages
-        let data = fileHandle.readData(ofLength: 8192)
+        // Read first 32KB — enough for metadata even with many initial progress lines
+        let data = fileHandle.readData(ofLength: 32768)
         guard let content = String(data: data, encoding: .utf8) else { return nil }
 
         let lines = content.components(separatedBy: .newlines)
@@ -95,6 +95,33 @@ final class JSONLParser {
             firstUserMessage: firstUserMessage,
             estimatedMessageCount: estimatedLines
         )
+    }
+
+    /// Extract only searchable text content from a conversation file.
+    /// Returns concatenated user + assistant text, capped at maxChars.
+    func extractSearchableText(at url: URL, maxChars: Int = 50_000) -> String {
+        guard let data = try? Data(contentsOf: url),
+              let content = String(data: data, encoding: .utf8) else { return "" }
+
+        var result = ""
+        let lines = content.components(separatedBy: .newlines)
+
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty, let lineData = trimmed.data(using: .utf8) else { continue }
+            guard let msg = try? decoder.decode(ConversationMessage.self, from: lineData) else { continue }
+
+            if msg.isDisplayable {
+                let text = msg.displayText
+                if !text.isEmpty {
+                    result += text
+                    result += " "
+                    if result.count >= maxChars { break }
+                }
+            }
+        }
+
+        return String(result.prefix(maxChars))
     }
 }
 

@@ -9,15 +9,19 @@ final class ConversationStore {
     var searchText: String = ""
     var isLoading: Bool = false
     var isLoadingMessages: Bool = false
+    var isIndexing: Bool = false
 
     private let scanner = ClaudeDirectoryScanner()
     private let parser = JSONLParser()
     private var fileWatcher: FileWatcher?
+    private var contentIndex: [String: String] = [:]
+    private var indexedModDates: [String: Date] = [:]
 
     // MARK: - Computed Properties
 
     var allConversations: [Conversation] {
-        projects.flatMap(\.conversations)
+        var seen = Set<String>()
+        return projects.flatMap(\.conversations).filter { seen.insert($0.id).inserted }
     }
 
     var recentConversations: [Conversation] {
@@ -77,12 +81,44 @@ final class ConversationStore {
         isLoadingMessages = false
     }
 
+    /// Build a background search index of all conversation text content.
+    func buildSearchIndex() async {
+        isIndexing = true
+        let conversations = allConversations
+        let parser = self.parser
+        let existingModDates = indexedModDates
+
+        let newIndex = await Task.detached(priority: .background) {
+            var index: [String: String] = [:]
+            for conv in conversations {
+                // Skip if already indexed and not modified
+                if let existingDate = existingModDates[conv.id],
+                   let convDate = conv.lastTimestamp,
+                   existingDate >= convDate {
+                    continue
+                }
+                index[conv.id] = parser.extractSearchableText(at: conv.fileURL)
+            }
+            return index
+        }.value
+
+        // Merge new entries into existing index
+        for (id, text) in newIndex {
+            contentIndex[id] = text
+            if let conv = allConversations.first(where: { $0.id == id }) {
+                indexedModDates[id] = conv.lastTimestamp ?? Date()
+            }
+        }
+        isIndexing = false
+    }
+
     func startWatching() {
         let projectsPath = scanner.claudeDir
             .appendingPathComponent("projects").path
         fileWatcher = FileWatcher(path: projectsPath) { [weak self] in
             Task { @MainActor in
                 await self?.loadAll()
+                await self?.buildSearchIndex()
             }
         }
         fileWatcher?.start()
@@ -96,6 +132,11 @@ final class ConversationStore {
     // MARK: - Private
 
     private func matchesSearch(_ conversation: Conversation, query: String) -> Bool {
+        // Search by session ID
+        if conversation.id.lowercased().contains(query) {
+            return true
+        }
+        // Search by slug
         if let slug = conversation.slug, slug.lowercased().contains(query) {
             return true
         }
@@ -106,6 +147,11 @@ final class ConversationStore {
             return true
         }
         if let preview = conversation.firstUserMessage, preview.lowercased().contains(query) {
+            return true
+        }
+        // Search in full content index
+        if let indexed = contentIndex[conversation.id],
+           indexed.localizedCaseInsensitiveContains(query) {
             return true
         }
         return false

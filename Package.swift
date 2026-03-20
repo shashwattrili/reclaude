@@ -7,9 +7,15 @@ let package = Package(
     platforms: [
         .macOS(.v26)
     ],
+    dependencies: [
+        .package(url: "https://github.com/gonzalezreal/swift-markdown-ui", from: "2.0.2")
+    ],
     targets: [
         .executableTarget(
             name: "Reclaude",
+            dependencies: [
+                .product(name: "MarkdownUI", package: "swift-markdown-ui")
+            ],
             path: "Reclaude",
             swiftSettings: [
                 .swiftLanguageMode(.v5)
