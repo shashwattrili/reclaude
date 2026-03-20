@@ -4,3 +4,7 @@
 xcuserdata/
 DerivedData/
 .DS_Store
+dist/
+
+# Private roadmap (not for public repo)
+.claude/ROADMAP.md
