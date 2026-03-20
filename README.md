@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/macOS-26%2B-black?style=flat-square" alt="macOS 26+">
   <img src="https://img.shields.io/badge/Swift-6.2-F05138?style=flat-square&logo=swift&logoColor=white" alt="Swift 6.2">
   <img src="https://img.shields.io/badge/Liquid%20Glass-enabled-blueviolet?style=flat-square" alt="Liquid Glass">
-  <img src="https://img.shields.io/badge/binary-792KB-green?style=flat-square" alt="Binary size">
+  <a href="../../releases"><img src="https://img.shields.io/github/v/release/shashwattrili/reclaude?style=flat-square&color=f4c28e&label=release" alt="Release"></a>
 </p>
 
 ---
@@ -51,7 +51,7 @@ xattr -cr /Applications/Reclaude.app
 Requires Xcode Command Line Tools and macOS 26+.
 
 ```bash
-git clone https://github.com/anthropics/reclaude.git
+git clone https://github.com/shashwattrili/reclaude.git
 cd reclaude
 swift build -c release
 ./scripts/build-app.sh
@@ -113,7 +113,7 @@ Reclaude/
 
 ## Requirements
 
-- **macOS 26** (Tahoe) or later
+- **macOS 26** or later
 - **Claude Code** installed and used at least once (so `~/.claude/` exists)
 - **Swift 6.2+** (if building from source)
 
