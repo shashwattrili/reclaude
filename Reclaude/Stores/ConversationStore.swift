@@ -36,12 +36,16 @@ final class ConversationStore {
     }
 
     var filteredProjects: [Project] {
-        guard !searchText.isEmpty else { return projects }
-        let query = searchText.lowercased()
+        let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return projects }
+        let terms = trimmed.lowercased()
+            .components(separatedBy: .whitespaces)
+            .filter { !$0.isEmpty }
+        guard !terms.isEmpty else { return projects }
 
         return projects.compactMap { project in
             let matchingConversations = project.conversations.filter { conv in
-                matchesSearch(conv, query: query)
+                matchesSearch(conv, terms: terms)
             }
             guard !matchingConversations.isEmpty else { return nil }
             return Project(
@@ -53,9 +57,13 @@ final class ConversationStore {
     }
 
     var filteredRecent: [Conversation] {
-        guard !searchText.isEmpty else { return recentConversations }
-        let query = searchText.lowercased()
-        return recentConversations.filter { matchesSearch($0, query: query) }
+        let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return recentConversations }
+        let terms = trimmed.lowercased()
+            .components(separatedBy: .whitespaces)
+            .filter { !$0.isEmpty }
+        guard !terms.isEmpty else { return recentConversations }
+        return recentConversations.filter { matchesSearch($0, terms: terms) }
     }
 
     // MARK: - Actions
@@ -94,7 +102,7 @@ final class ConversationStore {
                 // Skip if already indexed and not modified
                 if let existingDate = existingModDates[conv.id],
                    let convDate = conv.lastTimestamp,
-                   existingDate >= convDate {
+                   existingDate > convDate {
                     continue
                 }
                 index[conv.id] = parser.extractSearchableText(at: conv.fileURL)
@@ -131,29 +139,23 @@ final class ConversationStore {
 
     // MARK: - Private
 
-    private func matchesSearch(_ conversation: Conversation, query: String) -> Bool {
-        // Search by session ID
-        if conversation.id.lowercased().contains(query) {
-            return true
-        }
-        // Search by slug
-        if let slug = conversation.slug, slug.lowercased().contains(query) {
-            return true
-        }
-        if conversation.projectPath.lowercased().contains(query) {
-            return true
-        }
-        if conversation.projectDisplayName.lowercased().contains(query) {
-            return true
-        }
-        if let preview = conversation.firstUserMessage, preview.lowercased().contains(query) {
-            return true
-        }
-        // Search in full content index
-        if let indexed = contentIndex[conversation.id],
-           indexed.localizedCaseInsensitiveContains(query) {
-            return true
-        }
-        return false
+    /// Build a single searchable string for a conversation (metadata + indexed content).
+    private func searchableText(for conversation: Conversation) -> String {
+        var parts: [String] = [
+            conversation.id,
+            conversation.projectPath,
+            conversation.projectDisplayName,
+        ]
+        if let slug = conversation.slug { parts.append(slug) }
+        if let branch = conversation.gitBranch { parts.append(branch) }
+        if let preview = conversation.firstUserMessage { parts.append(preview) }
+        if let indexed = contentIndex[conversation.id] { parts.append(indexed) }
+        return parts.joined(separator: " ").lowercased()
+    }
+
+    /// All search terms must appear somewhere in the conversation's searchable text.
+    private func matchesSearch(_ conversation: Conversation, terms: [String]) -> Bool {
+        let text = searchableText(for: conversation)
+        return terms.allSatisfy { text.contains($0) }
     }
 }

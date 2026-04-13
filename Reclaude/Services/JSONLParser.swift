@@ -97,9 +97,9 @@ final class JSONLParser {
         )
     }
 
-    /// Extract only searchable text content from a conversation file.
-    /// Returns concatenated user + assistant text, capped at maxChars.
-    func extractSearchableText(at url: URL, maxChars: Int = 50_000) -> String {
+    /// Extract searchable text content from a conversation file.
+    /// Includes user/assistant text and tool names, capped at maxChars.
+    func extractSearchableText(at url: URL, maxChars: Int = 200_000) -> String {
         guard let data = try? Data(contentsOf: url),
               let content = String(data: data, encoding: .utf8) else { return "" }
 
@@ -116,8 +116,13 @@ final class JSONLParser {
                 if !text.isEmpty {
                     result += text
                     result += " "
-                    if result.count >= maxChars { break }
                 }
+                // Include tool names so users can search by tool (e.g. "grep", "bash")
+                for tool in msg.toolUseBlocks {
+                    result += tool.name
+                    result += " "
+                }
+                if result.count >= maxChars { break }
             }
         }
 
