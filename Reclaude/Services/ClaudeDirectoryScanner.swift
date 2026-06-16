@@ -1,6 +1,22 @@
 import Foundation
 
-final class ClaudeDirectoryScanner {
+/// One file's parsed result, cached by modification date so unchanged files
+/// are never re-read on a rescan (cheap re-scans during active sessions).
+struct CachedFile: Sendable {
+    let modDate: Date
+    let conversation: Conversation
+    let searchText: String
+}
+
+/// Result of a full scan: the project tree plus a search index keyed by
+/// conversation id, plus the refreshed per-file cache.
+struct ScanOutput: Sendable {
+    let projects: [Project]
+    let searchIndex: [String: String]
+    let cache: [String: CachedFile]
+}
+
+struct ClaudeDirectoryScanner: Sendable {
     let claudeDir: URL
     private let parser = JSONLParser()
 
@@ -9,18 +25,23 @@ final class ClaudeDirectoryScanner {
             .appendingPathComponent(".claude")
     }
 
-    /// Scan all projects and conversations. Returns sorted projects.
-    func scanProjects() -> [Project] {
-        let projectsDir = claudeDir.appendingPathComponent("projects")
+    var projectsDir: URL { claudeDir.appendingPathComponent("projects") }
+
+    /// Scan all projects. Reuses `cache` entries whose file mod-date is unchanged.
+    func scan(cache previous: [String: CachedFile]) -> ScanOutput {
         let fm = FileManager.default
 
         guard let projectDirs = try? fm.contentsOfDirectory(
             at: projectsDir,
             includingPropertiesForKeys: [.isDirectoryKey],
             options: [.skipsHiddenFiles]
-        ) else { return [] }
+        ) else {
+            return ScanOutput(projects: [], searchIndex: [:], cache: [:])
+        }
 
         var projects: [Project] = []
+        var searchIndex: [String: String] = [:]
+        var newCache: [String: CachedFile] = [:]
 
         for projectDir in projectDirs {
             var isDir: ObjCBool = false
@@ -30,7 +51,6 @@ final class ClaudeDirectoryScanner {
             let dirName = projectDir.lastPathComponent
             let decodedPath = PathDecoder.decode(dirName)
 
-            // Find all .jsonl files in this project directory (not in subdirectories)
             guard let files = try? fm.contentsOfDirectory(
                 at: projectDir,
                 includingPropertiesForKeys: [.contentModificationDateKey],
@@ -43,52 +63,51 @@ final class ClaudeDirectoryScanner {
             var conversations: [Conversation] = []
 
             for file in jsonlFiles {
-                guard let conversation = scanConversation(file: file, projectDirName: dirName, decodedPath: decodedPath) else {
+                let path = file.path
+                let modDate = (try? file.resourceValues(forKeys: [.contentModificationDateKey]))?
+                    .contentModificationDate ?? .distantPast
+
+                // Reuse cache if the file is unchanged.
+                if let cached = previous[path], cached.modDate == modDate {
+                    conversations.append(cached.conversation)
+                    searchIndex[cached.conversation.id] = cached.searchText
+                    newCache[path] = cached
                     continue
                 }
+
+                guard let parsed = parser.parse(at: file) else { continue }
+                let sessionId = parsed.sessionId ?? file.deletingPathExtension().lastPathComponent
+
+                let conversation = Conversation(
+                    id: sessionId,
+                    title: parsed.title,
+                    slug: parsed.slug,
+                    projectPath: parsed.cwd ?? decodedPath,
+                    projectDirName: dirName,
+                    cwd: parsed.cwd,
+                    gitBranch: parsed.gitBranch,
+                    firstTimestamp: parsed.firstTimestamp,
+                    lastTimestamp: parsed.lastTimestamp,
+                    fileURL: file,
+                    messageCount: parsed.messageCount,
+                    firstUserMessage: parsed.firstUserMessage,
+                    commands: parsed.commands,
+                    filesTouched: parsed.filesTouched
+                )
+
                 conversations.append(conversation)
+                searchIndex[conversation.id] = parsed.searchText
+                newCache[path] = CachedFile(modDate: modDate, conversation: conversation, searchText: parsed.searchText)
             }
 
             guard !conversations.isEmpty else { continue }
-
-            // Sort conversations by most recent first
             conversations.sort { ($0.lastTimestamp ?? .distantPast) > ($1.lastTimestamp ?? .distantPast) }
 
-            // Use cwd from first conversation as authoritative path if available
             let authoritativePath = conversations.first?.cwd ?? decodedPath
-
-            let project = Project(
-                id: dirName,
-                path: authoritativePath,
-                conversations: conversations
-            )
-            projects.append(project)
+            projects.append(Project(id: dirName, path: authoritativePath, conversations: conversations))
         }
 
-        // Sort projects by most recent conversation
         projects.sort { ($0.latestTimestamp ?? .distantPast) > ($1.latestTimestamp ?? .distantPast) }
-
-        return projects
-    }
-
-    private func scanConversation(file: URL, projectDirName: String, decodedPath: String) -> Conversation? {
-        let metadata = parser.parseMetadata(at: file)
-
-        // Use filename (without extension) as sessionId if not found in metadata
-        let sessionId = metadata?.sessionId ?? file.deletingPathExtension().lastPathComponent
-
-        return Conversation(
-            id: sessionId,
-            slug: metadata?.slug,
-            projectPath: metadata?.cwd ?? decodedPath,
-            projectDirName: projectDirName,
-            cwd: metadata?.cwd,
-            gitBranch: metadata?.gitBranch,
-            firstTimestamp: metadata?.firstTimestamp,
-            lastTimestamp: metadata?.lastTimestamp,
-            fileURL: file,
-            messageCount: metadata?.estimatedMessageCount ?? 0,
-            firstUserMessage: metadata?.firstUserMessage
-        )
+        return ScanOutput(projects: projects, searchIndex: searchIndex, cache: newCache)
     }
 }

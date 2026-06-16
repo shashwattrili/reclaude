@@ -16,6 +16,8 @@ struct ConversationMessage: Identifiable, Codable {
     let message: APIMessage?
     let promptId: String?
     let permissionMode: String?
+    let aiTitle: String?
+    let customTitle: String?
 
     var id: String { uuid ?? "\(type)-\(timestamp ?? UUID().uuidString)" }
 
@@ -26,6 +28,22 @@ struct ConversationMessage: Identifiable, Codable {
     var parsedDate: Date? {
         guard let timestamp else { return nil }
         return DateFormatting.parseISO(timestamp)
+    }
+
+    /// Combined thinking text from this message, if any.
+    var thinkingText: String? {
+        guard case .blocks(let blocks)? = message?.content else { return nil }
+        let t = blocks.compactMap { block -> String? in
+            if case .thinking(let tb) = block { return tb.thinking }
+            return nil
+        }.joined(separator: "\n")
+        return t.isEmpty ? nil : t
+    }
+
+    /// tool_result blocks carried by this (user) message, keyed by tool_use id.
+    var toolResults: [ToolResultBlock] {
+        guard case .blocks(let blocks)? = message?.content else { return [] }
+        return blocks.compactMap { if case .toolResult(let r) = $0 { return r }; return nil }
     }
 
     /// Extract plain text from this message for display.
@@ -184,9 +202,97 @@ struct ToolUseBlock: Codable {
     let type: String
     let id: String
     let name: String
+    let input: JSONValue?
 
     enum CodingKeys: String, CodingKey {
-        case type, id, name
+        case type, id, name, input
+    }
+
+    private func str(_ key: String) -> String? { input?[key]?.stringValue }
+
+    /// The single most descriptive parameter, for one-line display.
+    var inputSummary: String {
+        switch name {
+        case "Bash":                 return str("command") ?? ""
+        case "Read", "Edit", "Write", "NotebookEdit":
+                                     return str("file_path").map(shortPath) ?? ""
+        case "Glob":                 return str("pattern") ?? ""
+        case "Grep":                 return str("pattern") ?? ""
+        case "Task", "Agent":        return str("description") ?? str("subagent_type") ?? ""
+        case "WebFetch":             return str("url") ?? ""
+        case "WebSearch":            return str("query") ?? ""
+        case "TodoWrite":            return "todo list"
+        case "TaskCreate", "TaskUpdate": return str("subject") ?? str("status") ?? ""
+        default:
+            return str("file_path").map(shortPath) ?? str("path") ?? str("query") ?? ""
+        }
+    }
+
+    var bashCommand: String? { name == "Bash" ? str("command") : nil }
+
+    /// (path, old, new) for Edit; for Write, old is "" and new is content.
+    var fileChange: (path: String, old: String, new: String)? {
+        switch name {
+        case "Edit", "NotebookEdit":
+            guard let p = str("file_path") else { return nil }
+            return (p, str("old_string") ?? str("old_source") ?? "", str("new_string") ?? str("new_source") ?? "")
+        case "Write":
+            guard let p = str("file_path") else { return nil }
+            return (p, "", str("content") ?? "")
+        default: return nil
+        }
+    }
+
+    private func shortPath(_ p: String) -> String {
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        return p.hasPrefix(home) ? "~" + p.dropFirst(home.count) : p
+    }
+}
+
+/// A minimal JSON value so tool-call inputs can be decoded generically.
+enum JSONValue: Codable, Sendable {
+    case string(String)
+    case number(Double)
+    case bool(Bool)
+    case object([String: JSONValue])
+    case array([JSONValue])
+    case null
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.singleValueContainer()
+        if c.decodeNil() { self = .null }
+        else if let v = try? c.decode(Bool.self) { self = .bool(v) }
+        else if let v = try? c.decode(Double.self) { self = .number(v) }
+        else if let v = try? c.decode(String.self) { self = .string(v) }
+        else if let v = try? c.decode([String: JSONValue].self) { self = .object(v) }
+        else if let v = try? c.decode([JSONValue].self) { self = .array(v) }
+        else { self = .null }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.singleValueContainer()
+        switch self {
+        case .string(let v): try c.encode(v)
+        case .number(let v): try c.encode(v)
+        case .bool(let v): try c.encode(v)
+        case .object(let v): try c.encode(v)
+        case .array(let v): try c.encode(v)
+        case .null: try c.encodeNil()
+        }
+    }
+
+    subscript(_ key: String) -> JSONValue? {
+        if case .object(let o) = self { return o[key] }
+        return nil
+    }
+
+    var stringValue: String? {
+        switch self {
+        case .string(let s): return s
+        case .number(let n): return n == n.rounded() ? String(Int(n)) : String(n)
+        case .bool(let b): return String(b)
+        default: return nil
+        }
     }
 }
 
@@ -194,11 +300,23 @@ struct ToolResultBlock: Codable {
     let type: String
     let toolUseId: String
     let content: MessageContent?
+    let isError: Bool?
 
     enum CodingKeys: String, CodingKey {
         case type
         case toolUseId = "tool_use_id"
         case content
+        case isError = "is_error"
+    }
+
+    var textValue: String {
+        switch content {
+        case .text(let s): return s
+        case .blocks(let blocks):
+            return blocks.compactMap { if case .text(let t) = $0 { return t.text }; return nil }
+                .joined(separator: "\n")
+        case nil: return ""
+        }
     }
 }
 

@@ -3,6 +3,8 @@ import MarkdownUI
 
 struct MessageBubbleView: View {
     let message: ConversationMessage
+    var results: [String: ToolResultBlock] = [:]
+    var readingMode: Bool = false
 
     var body: some View {
         if message.isUser {
@@ -42,13 +44,22 @@ struct MessageBubbleView: View {
                         .font(.caption)
                         .fontWeight(.semibold)
                         .foregroundStyle(ClaudeTheme.sparkle)
-                    if let date = message.parsedDate {
-                        Text("·")
+                    if let model = message.message?.model {
+                        Text(model)
+                            .font(.caption2)
                             .foregroundStyle(.tertiary)
+                    }
+                    if let date = message.parsedDate {
+                        Text("·").foregroundStyle(.tertiary)
                         Text(DateFormatting.relative(date))
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
                     }
+                    Spacer(minLength: 0)
+                }
+
+                if !readingMode, let thinking = message.thinkingText {
+                    ThinkingView(text: thinking)
                 }
 
                 ForEach(message.contentBlocks) { block in
@@ -56,21 +67,55 @@ struct MessageBubbleView: View {
                     case .text(let tb):
                         CodeBlockView(text: tb.text)
                     case .toolUse(let tu):
-                        ToolCallSummaryView(name: tu.name)
-                    case .thinking:
-                        EmptyView()
-                    case .toolResult:
-                        EmptyView()
-                    case .unknown:
+                        if !readingMode {
+                            ToolCallView(tool: tu, result: results[tu.id])
+                        }
+                    case .thinking, .toolResult, .unknown:
                         EmptyView()
                     }
                 }
             }
             .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .background(ClaudeTheme.claudeBubble.opacity(0.15))
             .clipShape(.rect(cornerRadius: 12))
 
             Spacer(minLength: 60)
+        }
+    }
+}
+
+struct ThinkingView: View {
+    let text: String
+    @State private var expanded = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Button {
+                withAnimation(.snappy(duration: 0.15)) { expanded.toggle() }
+            } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: "brain")
+                        .font(.caption2)
+                    Text("Thinking")
+                        .font(.caption.weight(.medium))
+                    Image(systemName: "chevron.right")
+                        .font(.caption2)
+                        .rotationEffect(.degrees(expanded ? 90 : 0))
+                }
+                .foregroundStyle(.secondary)
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+
+            if expanded {
+                Markdown(text)
+                    .textSelection(.enabled)
+                    .font(.callout)
+                    .padding(8)
+                    .background(.quaternary.opacity(0.4))
+                    .clipShape(.rect(cornerRadius: 6))
+            }
         }
     }
 }

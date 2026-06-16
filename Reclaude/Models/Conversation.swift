@@ -1,7 +1,8 @@
 import Foundation
 
-struct Conversation: Identifiable, Hashable {
+struct Conversation: Identifiable, Hashable, Sendable {
     let id: String                 // sessionId (UUID string)
+    let title: String?             // ai/custom generated title (best label)
     let slug: String?              // human-readable name
     let projectPath: String        // decoded path: "/Users/.../repos/rwa"
     let projectDirName: String     // raw dir name
@@ -12,11 +13,16 @@ struct Conversation: Identifiable, Hashable {
     let fileURL: URL
     let messageCount: Int
     let firstUserMessage: String?  // preview text for sidebar
+    var commands: [String] = []     // bash commands run in this session
+    var filesTouched: [String] = [] // file paths edited/written
 
     var displayName: String {
+        if let title, !title.isEmpty {
+            return title
+        }
         if let msg = firstUserMessage, !msg.isEmpty {
-            let title = msg.prefix(60)
-            return title.count < msg.count ? "\(title)..." : String(title)
+            let head = msg.prefix(60)
+            return head.count < msg.count ? "\(head)…" : String(head)
         }
         return slug ?? String(id.prefix(8))
     }

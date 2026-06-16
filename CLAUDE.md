@@ -26,12 +26,13 @@ Reclaude/
 │   ├── Conversation.swift         # Lightweight metadata, displayName prefers firstUserMessage
 │   └── Project.swift              # Groups conversations by project directory
 ├── Services/
-│   ├── ClaudeDirectoryScanner.swift  # Scans ~/.claude/projects/*/*.jsonl, builds [Project]
-│   ├── JSONLParser.swift             # parseMetadata (32KB/50 lines) and parseAll, extractSearchableText
+│   ├── ClaudeDirectoryScanner.swift  # Sendable. scan(cache:) → ScanOutput (projects + searchIndex + per-file mod-date cache)
+│   ├── JSONLParser.swift             # Sendable struct. parse(at:) one full pass → metadata+title+searchText; parseAll for detail
 │   ├── FileWatcher.swift             # FSEventStream wrapper, 2s debounce, passRetained prevent dangling
-│   └── TerminalLauncher.swift        # AppleScript to open Terminal with `claude --resume <id>`
+│   ├── TerminalApp.swift             # enum of supported terminals, NSWorkspace install detection
+│   └── TerminalLauncher.swift        # Launches a chosen TerminalApp (AppleScript for Terminal/iTerm, `open -n` for others)
 ├── Stores/
-│   └── ConversationStore.swift    # @Observable — projects, selection, search, background content index
+│   └── ConversationStore.swift    # @MainActor @Observable — projects, selection, tokenized ranked search, coalesced reload
 ├── Views/
 │   ├── ContentView.swift          # NavigationSplitView + .searchable(placement: .sidebar)
 │   ├── Sidebar/
@@ -44,8 +45,13 @@ Reclaude/
 │       ├── MessageBubbleView.swift       # User (lavender) and Claude (peach) bubbles
 │       ├── CodeBlockView.swift           # Splits text into prose (→MarkdownUI) and code blocks (themed)
 │       ├── MarkdownText.swift            # Legacy custom parser (no longer used by MessageBubbleView)
-│       ├── ToolCallSummaryView.swift     # Compact capsule pill with tool name
+│       ├── ToolCallView.swift            # Rich tool call: input summary, collapsible result, inline diff (replaces old pill)
+│       ├── DiffView.swift                # LCS line diff for Edit/Write changes
+│       ├── SessionSummaryView.swift      # ConversationInsights header: model, tokens, files changed (+/−), tasks, duration; FlowLayout chips
 │       └── EmptyStateView.swift          # "Select a Conversation" placeholder
+│   ├── Sidebar/CommandHistoryView.swift  # ViewMode.commands — global searchable/copyable Bash history, row→conversation
+│   ├── ResumeButton.swift         # Split-button: primary resumes in default terminal, menu picks any installed
+│   └── SettingsView.swift         # Cmd+, — default terminal picker (@AppStorage "defaultTerminal")
 └── Utilities/
     ├── ClaudeTheme.swift          # 5 Claude brand colors: peach, lightPeach, blush, pink, lavender
     ├── PathDecoder.swift          # "-Users-foo-bar" → "/Users/foo/bar"
@@ -54,8 +60,10 @@ Reclaude/
 
 ## Key Design Decisions
 
-- **Conversation titles** show the first user message (truncated to 60 chars), not slugs or UUIDs. Slug shown as peach-colored caption when available.
-- **Search** is full-text: a background index (`contentIndex`) parses all JSONL files on launch, capped at 50KB per conversation. Also matches slug and session ID.
+- **Conversation titles** prefer the real `custom-title`/`ai-title` line from the JSONL (these live ~80–130KB into the file, so they need a full read — not the old 32KB head). Fall back to first user message (60 chars), then slug, then id.
+- **Concurrency**: `ConversationStore` is `@MainActor`; all file I/O runs in `Task.detached` over `Sendable` parser/scanner returning value types, assigned back on the main actor. Watcher reloads are **coalesced** (single in-flight + queued flag) so an active session's FSEvents storm can't race shared arrays/dicts. This is what fixed the crash-on-active-session bug.
+- **Rich detail view**: `ToolUseBlock.input` is decoded into a generic `JSONValue`; tool calls render with an input summary + collapsible result (paired by `tool_use_id` from following user messages), file edits render as inline `DiffView`, thinking is collapsible. **Reading mode** (`@AppStorage "readingMode"`) hides tool/thinking noise. `ConversationInsights` (derived from loaded messages) drives the summary header. `commands`/`filesTouched` are collected at scan time (small) for the global Command History and file→sessions lookups.
+- **Search** is full-text and tokenized: one full-file parse builds `contentIndex` (real user+assistant text only — no tool calls/results/thinking), keyed by conv id, cached by file mod-date for cheap rescans. Query is split into terms; **every term must match** (AND) across title/slug/id/path/content; results ranked by weighted score; matched rows show a highlighted snippet. (Old bug: single-substring match failed any multi-word query.)
 - **Markdown** uses MarkdownUI for prose sections. Code blocks are extracted first via regex (triple-backtick) and rendered with Claude's themed `CodeBlockView` (blush background, peach language labels).
 - **Colors** follow Claude's brand: peach (#f4c28e), lightPeach (#f4c7a8), blush (#f4ccc2), pink (#f4d1dc), lavender (#f4d6f6). Defined in `ClaudeTheme.swift`.
 - **State management** uses `@Observable` (Observation framework). `ConversationStore` is the single source of truth.
@@ -66,7 +74,8 @@ Reclaude/
 Each conversation is a `.jsonl` file in `~/.claude/projects/{encoded-path}/{sessionId}.jsonl`. Key message types:
 - `type: "user"` — `message.content` is a plain `String`
 - `type: "assistant"` — `message.content` is `[ContentBlock]` (text, thinking, tool_use)
-- `type: "progress"`, `"file-history-snapshot"`, `"system"` — skipped in display
+- `type: "ai-title"` (`aiTitle`) / `"custom-title"` (`customTitle`) — generated conversation titles, used as the display title
+- `type: "progress"`, `"file-history-snapshot"`, `"system"`, `"attachment"`, `"last-prompt"`, `"mode"`, `"permission-mode"`, `"queue-operation"`, `"agent-name"`, `"pr-link"` — skipped in display
 - User messages with only `tool_result` blocks are auto-generated and hidden
 - Fields: `uuid`, `parentUuid`, `timestamp` (ISO 8601), `sessionId`, `slug`, `cwd`, `gitBranch`, `message.usage` (token counts)
 

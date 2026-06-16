@@ -50,8 +50,12 @@ struct ProjectGroupListView: View {
                             expandedProjects.removeAll()
                         }
                         Divider()
-                        Button("Open in Terminal") {
-                            TerminalLauncher.newSession(cwd: project.path)
+                        Menu("New Session in") {
+                            ForEach(TerminalApp.installed) { term in
+                                Button(term.displayName) {
+                                    TerminalLauncher.newSession(cwd: project.path, in: term)
+                                }
+                            }
                         }
                     }
                 }

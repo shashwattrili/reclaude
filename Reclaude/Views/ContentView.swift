@@ -19,9 +19,8 @@ struct ContentView: View {
         }
         .searchable(text: $store.searchText, placement: .sidebar, prompt: "Search conversations")
         .task {
-            await store.loadAll()
+            await store.loadInitial()
             store.startWatching()
-            await store.buildSearchIndex()
         }
     }
 }

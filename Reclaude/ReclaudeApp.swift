@@ -3,6 +3,7 @@ import SwiftUI
 enum ViewMode: String, CaseIterable {
     case recent = "Recent"
     case byProject = "By Project"
+    case commands = "Commands"
 }
 
 @main
@@ -21,7 +22,7 @@ struct ReclaudeApp: App {
         .commands {
             CommandGroup(replacing: .newItem) {
                 Button("Refresh Conversations") {
-                    Task { await store.loadAll() }
+                    Task { await store.reload() }
                 }
                 .keyboardShortcut("r", modifiers: .command)
             }
@@ -37,19 +38,32 @@ struct ReclaudeApp: App {
                 }
                 .keyboardShortcut("2", modifiers: .command)
 
+                Button("Commands") {
+                    viewMode = .commands
+                }
+                .keyboardShortcut("3", modifiers: .command)
+
                 Divider()
 
                 Button("Resume in Terminal") {
                     if let conv = store.selectedConversation {
+                        let term = TerminalApp.resolvedDefault(
+                            preference: UserDefaults.standard.string(forKey: "defaultTerminal")
+                        )
                         TerminalLauncher.resume(
                             sessionId: conv.id,
-                            cwd: conv.cwd ?? conv.projectPath
+                            cwd: conv.cwd ?? conv.projectPath,
+                            in: term
                         )
                     }
                 }
                 .keyboardShortcut("r", modifiers: [.command, .shift])
                 .disabled(store.selectedConversation == nil)
             }
+        }
+
+        Settings {
+            SettingsView()
         }
     }
 }

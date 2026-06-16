@@ -15,6 +15,8 @@ struct SidebarView: View {
                     RecentListView()
                 case .byProject:
                     ProjectGroupListView()
+                case .commands:
+                    CommandHistoryView()
                 }
             }
         }
@@ -26,6 +28,8 @@ struct SidebarView: View {
                         .tag(ViewMode.recent)
                     Label("By Project", systemImage: "folder")
                         .tag(ViewMode.byProject)
+                    Label("Commands", systemImage: "terminal")
+                        .tag(ViewMode.commands)
                 }
                 .pickerStyle(.segmented)
             }

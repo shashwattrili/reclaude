@@ -2,6 +2,7 @@ import SwiftUI
 import AppKit
 
 struct ConversationRowView: View {
+    @Environment(ConversationStore.self) private var store
     let conversation: Conversation
 
     var body: some View {
@@ -38,14 +39,27 @@ struct ConversationRowView: View {
                     .foregroundStyle(.tertiary)
                     .lineLimit(1)
             }
+
+            if !store.searchText.isEmpty, let snippet = store.snippet(for: conversation) {
+                Text(snippet)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .padding(.top, 1)
+            }
         }
         .padding(.vertical, 2)
         .contextMenu {
-            Button("Resume in Terminal") {
-                TerminalLauncher.resume(
-                    sessionId: conversation.id,
-                    cwd: conversation.cwd ?? conversation.projectPath
-                )
+            Menu("Resume in") {
+                ForEach(TerminalApp.installed) { term in
+                    Button(term.displayName) {
+                        TerminalLauncher.resume(
+                            sessionId: conversation.id,
+                            cwd: conversation.cwd ?? conversation.projectPath,
+                            in: term
+                        )
+                    }
+                }
             }
 
             Divider()

@@ -17,6 +17,7 @@ let package = Package(
                 .product(name: "MarkdownUI", package: "swift-markdown-ui")
             ],
             path: "Reclaude",
+            exclude: ["Resources"],
             swiftSettings: [
                 .swiftLanguageMode(.v5)
             ]

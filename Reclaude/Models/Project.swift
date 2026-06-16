@@ -1,6 +1,6 @@
 import Foundation
 
-struct Project: Identifiable, Equatable {
+struct Project: Identifiable, Equatable, Sendable {
     static func == (lhs: Project, rhs: Project) -> Bool {
         lhs.id == rhs.id && lhs.conversations.count == rhs.conversations.count
     }
