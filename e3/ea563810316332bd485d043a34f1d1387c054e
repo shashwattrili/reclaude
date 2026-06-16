@@ -1,0 +1,23 @@
+CLAUDE.md
+  s_9cfa6675e496f8::t_c668f1f1edee29 8
+scripts/package-for-distribution.sh
+  s_9cfa6675e496f8::t_c6597558ff2036 35,37,55
+scripts/build-app.sh
+  s_9cfa6675e496f8::t_c6597558ff2036 7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.7",
+  "base_commit_sha": "e3ea563810316332bd485d043a34f1d1387c054e",
+  "prompts": {},
+  "sessions": {
+    "s_9cfa6675e496f8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b8c341a2-729b-476b-bcca-fa13dd366111",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Shashwat Aggarwal <shashwat.aggarwal@trili.tech>"
+    }
+  }
+}
