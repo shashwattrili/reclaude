@@ -32,9 +32,9 @@ cat > "$APP_DIR/Contents/Info.plist" << 'PLIST'
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>2.0.0</string>
+    <string>0.2.0</string>
     <key>CFBundleVersion</key>
-    <string>2</string>
+    <string>1</string>
     <key>LSMinimumSystemVersion</key>
     <string>26.0</string>
     <key>NSHighResolutionCapable</key>
@@ -52,7 +52,7 @@ echo -n "APPL????" > "$APP_DIR/Contents/PkgInfo"
 # Create the zip
 DIST_DIR="$PROJECT_DIR/dist"
 mkdir -p "$DIST_DIR"
-ZIP_PATH="$DIST_DIR/Reclaude-v2.0.0-macos.zip"
+ZIP_PATH="$DIST_DIR/Reclaude-v0.2.0-macos.zip"
 rm -f "$ZIP_PATH"
 
 cd .build

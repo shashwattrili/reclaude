@@ -4,7 +4,7 @@ set -euo pipefail
 APP_NAME="Reclaude"
 BUNDLE_ID="com.shashwataggarwal.Reclaude"
 EXECUTABLE="Reclaude"
-VERSION="0.1.0"
+VERSION="0.2.0"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"

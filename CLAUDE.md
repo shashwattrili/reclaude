@@ -5,7 +5,7 @@
 **Reclaude** ("re-call Claude") is a native macOS 26 SwiftUI app that lets you browse, search, and resume Claude Code terminal conversations. It reads JSONL files directly from `~/.claude/projects/` — no database, no server, no network calls.
 
 **Repo:** https://github.com/shashwattrili/reclaude
-**Current version:** 0.1.1
+**Current version:** 0.2.0
 
 ## Tech Stack
 
