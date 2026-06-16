@@ -1,0 +1,86 @@
+Reclaude/Views/Detail/SessionSummaryView.swift
+  s_9cfa6675e496f8::t_828a4fd5084749 1-31,35-186
+  s_9cfa6675e496f8::t_40985fe7335387 32-34
+Reclaude/Views/ResumeButton.swift
+  s_9cfa6675e496f8::t_5da993a567aad8 1-44
+Package.swift
+  s_9cfa6675e496f8::t_93b4ff9b3af486 20
+Reclaude/Views/SettingsView.swift
+  s_9cfa6675e496f8::t_9fbe65cac3d3df 1-26
+Reclaude/Views/Detail/DiffView.swift
+  s_9cfa6675e496f8::t_09c4cf88744dd6 1-85
+Reclaude/Models/Conversation.swift
+  s_9cfa6675e496f8::t_af913df9c32257 16-17
+  s_9cfa6675e496f8::t_5ec6d42c7eb161 3,5
+  s_9cfa6675e496f8::t_01499ea78c7839 20-22,24-25
+Reclaude/Views/Sidebar/ProjectGroupListView.swift
+  s_9cfa6675e496f8::t_6d3c45c08a5f76 53-58
+Reclaude/Views/Sidebar/ConversationRowView.swift
+  s_9cfa6675e496f8::t_7e27c3c8a6a6e4 5
+  s_9cfa6675e496f8::t_805d2c715fda02 42-49,53-62
+Reclaude/Services/TerminalApp.swift
+  s_9cfa6675e496f8::t_99fc6d50f9a819 1-56
+Reclaude/Views/Detail/MessageBubbleView.swift
+  s_9cfa6675e496f8::t_38285edd0a426d 6-7,47-49,51-53,58-62,70-73,79,87-118
+Reclaude/Services/ClaudeDirectoryScanner.swift
+  s_9cfa6675e496f8::t_1b26e365b00195 3-19,28-31,38-40,43-44,66-74,77-92,96-97,107,111
+  s_9cfa6675e496f8::t_2bd45b4d658f88 93-95
+  s_9cfa6675e496f8::t_e16abb958df304 99-100
+Reclaude/Views/Detail/ToolCallView.swift
+  s_9cfa6675e496f8::t_f4e4028a7bf66b 1-138
+Reclaude/Views/ContentView.swift
+  s_9cfa6675e496f8::t_59e9166b03ad84 22
+Reclaude/Models/ConversationMessage.swift
+  s_9cfa6675e496f8::t_d316900b905d7c 19-20
+  s_9cfa6675e496f8::t_cf56636ab49f15 205,208-295
+  s_9cfa6675e496f8::t_f5b6ed7d366b65 33-48
+  s_9cfa6675e496f8::t_756f8bd26078b3 303,309-319
+Reclaude/Services/JSONLParser.swift
+  s_9cfa6675e496f8::t_e414ba69b9d5d1 3-4,6-8,12,15,17-22,27-35,39-40,45,49-52,54-55,57,62-64,78-85,87-94,101,104,110,118,121,127-128
+  s_9cfa6675e496f8::t_3a48d8796227aa 66-75
+  s_9cfa6675e496f8::t_f841268ebd2702 111-113,129-130
+  s_9cfa6675e496f8::t_567e815395c130 46-48
+Reclaude/ReclaudeApp.swift
+  s_9cfa6675e496f8::t_9281c8c29a498f 50-52,55-56,64-66
+  s_9cfa6675e496f8::t_f1932ecb85e410 25
+  s_9cfa6675e496f8::t_bc8920811a5491 6
+  s_9cfa6675e496f8::t_85e7cb5481bbd9 41-45
+Reclaude/Views/Sidebar/CommandHistoryView.swift
+  s_9cfa6675e496f8::t_77dd295a0b02e2 1-69
+Reclaude/Views/Sidebar/SidebarView.swift
+  s_9cfa6675e496f8::t_b8d06bd4738647 18-19
+  s_9cfa6675e496f8::t_be7ec9e4fea897 31-32
+Reclaude/Models/Project.swift
+  s_9cfa6675e496f8::t_85d2b1b4ed2a96 3
+Reclaude/Views/Detail/ConversationDetailView.swift
+  s_9cfa6675e496f8::t_48a40f4dcb6dee 5,8-29,33,35,42,54-71,73,81-115
+  s_9cfa6675e496f8::t_53f8a1f986e845 49-53
+Reclaude/Stores/ConversationStore.swift
+  s_9cfa6675e496f8::t_d95730a2e107d5 4,17-18,20-27,29,47-59,61-63,65-70,103-176,180-198,210,213-215
+  s_9cfa6675e496f8::t_839ca6619f2b4c 71-84,89-95,98-101
+Reclaude/Services/TerminalLauncher.swift
+  s_9cfa6675e496f8::t_5224e96f3a136a 4-47,51-69,73-80,84-88
+CLAUDE.md
+  s_9cfa6675e496f8::t_b9b0d84cbc0109 48-50,52
+  s_9cfa6675e496f8::t_d6aa2fbdc4d27f 63-64,66
+  s_9cfa6675e496f8::t_5bbcc1ad41178d 65
+  s_9cfa6675e496f8::t_cd1fadcbec3f43 29-30,32-33,35
+  s_9cfa6675e496f8::t_63454079965545 53-54
+  s_9cfa6675e496f8::t_b0b102917c7898 77-78
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.7",
+  "base_commit_sha": "a023543dcb0e6904920bb076a69973fd42cc3dee",
+  "prompts": {},
+  "sessions": {
+    "s_9cfa6675e496f8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b8c341a2-729b-476b-bcca-fa13dd366111",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Shashwat Aggarwal <shashwat.aggarwal@trili.tech>"
+    }
+  }
+}
